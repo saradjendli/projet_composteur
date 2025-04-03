@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { utiliserGestionnaireWebSocket } from './useWebSocketManager'; 
+import utiliserGestionnaireWebSocket from './useWebSocketManager'; // Assure-toi que le chemin est correct
 
-const ComposteurControl = () => {
+const ComposteurControl: React.FC = () => {
   const { 
     arrosageActif, 
     temperature, 
@@ -22,7 +22,7 @@ const ComposteurControl = () => {
       ) : (
         <>
           <Text style={styles.connectionStatus}>
-            {connecte ? 'Connecté' : ' Déconnecté'}
+            {connecte ? 'Connecté' : 'Déconnecté'}
           </Text>
           <Text style={styles.info}>
             Température : {temperature !== null ? `${temperature}°C` : 'Chargement...'}
@@ -31,7 +31,7 @@ const ComposteurControl = () => {
             Humidité : {humidite !== null ? `${humidite}%` : 'Chargement...'}
           </Text>
           <Text style={styles.info}>
-            {arrosageActif ? ' Arrosage en cours' : 'Arrosage arrêté'}
+            {arrosageActif ? 'Arrosage en cours' : 'Arrosage arrêté'}
           </Text>
 
           <TouchableOpacity 
