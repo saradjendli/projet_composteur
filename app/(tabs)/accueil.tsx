@@ -68,7 +68,7 @@ const EcranAccueil: React.FC = () => {
     const storedPassword = await SecureStore.getItemAsync('motDePasse');
 
     if (hashedNomUtilisateur === storedUser && hashedMotDePasse === storedPassword) {
-      Alert.alert(`Bienvenue ${nomUtilisateur}!`);
+      Alert.alert(`Bienvenue !`);
       router.push('/affichage');
     } else {
       setTentatives(tentatives + 1);

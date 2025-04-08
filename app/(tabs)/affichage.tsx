@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import utiliserGestionnaireWebSocket from './useWebSocketManager'; // Assure-toi que le chemin est correct
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import useWebSocketManager from './useWebSocketManager';
 
 const ComposteurControl: React.FC = () => {
   const { 
@@ -11,10 +11,10 @@ const ComposteurControl: React.FC = () => {
     erreur,
     basculerControleArrosage, 
     reconnecter 
-  } = utiliserGestionnaireWebSocket();
+  } = useWebSocketManager();
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titre}>Données du Compost :</Text>
       
       {erreur ? (
@@ -22,16 +22,19 @@ const ComposteurControl: React.FC = () => {
       ) : (
         <>
           <Text style={styles.connectionStatus}>
-            {connecte ? 'Connecté' : 'Déconnecté'}
+            {connecte ? 'Connecté au serveur WebSocket' : ' Déconnecté'}
           </Text>
+          
           <Text style={styles.info}>
             Température : {temperature !== null ? `${temperature}°C` : 'Chargement...'}
           </Text>
+          
           <Text style={styles.info}>
             Humidité : {humidite !== null ? `${humidite}%` : 'Chargement...'}
           </Text>
+          
           <Text style={styles.info}>
-            {arrosageActif ? 'Arrosage en cours' : 'Arrosage arrêté'}
+            {arrosageActif ? 'Arrosage en cours ' : 'Arrosage arrêté '}
           </Text>
 
           <TouchableOpacity 
@@ -50,28 +53,31 @@ const ComposteurControl: React.FC = () => {
           )}
         </>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    padding: 20,
+    backgroundColor: '#f0f0f0',
   },
   titre: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#333',
   },
   connectionStatus: {
     fontSize: 16,
     marginBottom: 15,
+    color: '#666',
   },
   info: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 10,
   },
   erreur: {
@@ -85,7 +91,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 8,
     marginBottom: 10,
-    alignItems: 'center',
   },
   boutonActif: {
     backgroundColor: '#F44336',
@@ -96,7 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 8,
     marginTop: 10,
-    alignItems: 'center',
   },
   texteBouton: {
     color: 'white',

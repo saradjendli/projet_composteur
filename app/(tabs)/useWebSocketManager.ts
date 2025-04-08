@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Hook personnalisé pour gérer la connexion WebSocket sécurisé
+// pour gérer la connexion WebSocket sécurisé
 const utiliserGestionnaireWebSocket = () => {
   const [arrosageActif, setArrosageActif] = useState<boolean>(false);
   const [temperature, setTemperature] = useState<number | null>(null);
@@ -10,8 +10,10 @@ const utiliserGestionnaireWebSocket = () => {
   
   const wsRef = useRef<WebSocket | null>(null);
   const intervalleReconnexionRef = useRef<NodeJS.Timeout | null>(null);
+  const intervallePingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const URL_WSS = `wss://composteur.cielnewton.fr/api`; // Utiliser `wss://`
+  const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNjEwMzYyMjAwLCJleHBpcmVkIjp0cnVlfQ.RtGzTkBr5ogzyqrKmBrXdy5VoSlqF4D0V2m4dCzG8Mo";
+  const URL_WSS = `wss://composteur.cielnewton.fr/api?token=${TOKEN}`;
 
   const initialiserWebSocket = () => {
     try {
@@ -23,26 +25,37 @@ const utiliserGestionnaireWebSocket = () => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('✅ Connexion WebSocket sécurisée établie');
+        console.log('WEBSOKET CONNECTÉ');
         setConnecte(true);
         setErreur(null);
 
-        envoyerMessage({ type: 'get_water_state' });
-        envoyerMessage({ type: 'get_data' });
+        // envoyerMessage({ type: 'etat_arrosage' });
+        // envoyerMessage({ type: 'obtenir_donnees' });
+
+        // Lancer le ping régulier toutes les 5 secondes
+        if (!intervallePingRef.current) {
+          intervallePingRef.current = setInterval(() => {
+            envoyerMessage({ type: 'ping' });
+          }, 5000);
+        }
       };
 
       ws.onmessage = (event) => {
         try {
+          console.log(event.data)
           const donnees = JSON.parse(event.data);
 
-          if (donnees.type === 'water_state') {
-            setArrosageActif(donnees.state === 'on');
-          }
+          // if (donnees.type === 'etat_arrosage') {
+          //   setArrosageActif(donnees.state === 'on');
+          // }
 
-          if (donnees.type === 'data') {
-            setTemperature(donnees.temperature ?? null);
-            setHumidite(donnees.humidity ?? null);
-          }
+          // if (donnees.type === 'obtenir_donnees') {
+          //   setTemperature(donnees.temperature ?? null);
+          //   setHumidite(donnees.humidite ?? null);
+          // }
+          setTemperature(donnees.temperature ?? null);
+          setHumidite(donnees.humidite ?? null);
+          
 
         } catch (error) {
           console.error('Erreur lors du traitement des données WebSocket:', error);
@@ -59,6 +72,11 @@ const utiliserGestionnaireWebSocket = () => {
             initialiserWebSocket();
           }, 5000);
         }
+
+        if (intervallePingRef.current) {
+          clearInterval(intervallePingRef.current);
+          intervallePingRef.current = null;
+        }
       };
 
       ws.onerror = (error) => {
@@ -71,27 +89,31 @@ const utiliserGestionnaireWebSocket = () => {
     }
   };
 
-  const envoyerMessage = (message: any) => {
+  const envoyerMessage = (message: Record<string, any>) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-      console.log('Message envoyé au serveur sécurisé:', JSON.stringify(message));
+        try {
+            const messageJSON = JSON.stringify(message);
+            wsRef.current.send(messageJSON);
+            console.log('Message envoyé au serveur sécurisé:', messageJSON);
+        } catch (error) {
+            console.error('Erreur lors de la conversion en JSON :', error);
+            setErreur('Erreur lors de l\'envoi du message. Format invalide.');
+        }
     } else {
-      setErreur('Connexion WebSocket sécurisée non disponible');
+        setErreur('Connexion WebSocket sécurisée non disponible');
     }
   };
 
-  // ✅ Fonction pour contrôler l'arrosage
   const basculerControleArrosage = () => {
     const nouvelEtat = !arrosageActif;
     setArrosageActif(nouvelEtat);
 
     envoyerMessage({
-      type: 'set_water_state',
+      type: 'etat_arrosage',
       state: nouvelEtat ? 'on' : 'off'
     });
   };
 
-  // ✅ Fonction pour reconnecter manuellement
   const reconnecter = () => {
     if (wsRef.current) {
       wsRef.current.close();
@@ -99,17 +121,14 @@ const utiliserGestionnaireWebSocket = () => {
     initialiserWebSocket();
   };
 
+
   useEffect(() => {
     initialiserWebSocket();
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      if (intervalleReconnexionRef.current) {
-        clearTimeout(intervalleReconnexionRef.current);
-      }
+      if (wsRef.current) wsRef.current.close();
+      if (intervalleReconnexionRef.current) clearTimeout(intervalleReconnexionRef.current);
+      if (intervallePingRef.current) clearInterval(intervallePingRef.current);
     };
   }, []);
 
@@ -120,7 +139,7 @@ const utiliserGestionnaireWebSocket = () => {
     connecte,
     erreur,
     basculerControleArrosage,
-    reconnecter
+    reconnecter,
   };
 };
 
