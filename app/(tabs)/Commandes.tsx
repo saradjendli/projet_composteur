@@ -1,40 +1,46 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import useWebSocketManager from './useWebSocketManager';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView , Image} from 'react-native';
+import utiliserGestionnaireWebSocket from './WebSocketManager';
+import { useRouter } from 'expo-router';
 
 const ComposteurControl: React.FC = () => {
   const { 
     arrosageActif, 
     temperature, 
     humidite, 
-    connecte, 
     erreur,
     basculerControleArrosage, 
     reconnecter 
-  } = useWebSocketManager();
+  } = utiliserGestionnaireWebSocket();
+
+  const router = useRouter();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titre}>Données du Compost :</Text>
-      
+
       {erreur ? (
         <Text style={styles.erreur}>{erreur}</Text>
       ) : (
         <>
-          <Text style={styles.connectionStatus}>
-            {connecte ? 'Connecté au serveur WebSocket' : ' Déconnecté'}
-          </Text>
-          
+          {/* <Text style={styles.connectionStatus}>
+            {connecte ? 'Connecté au serveur WebSocket' : 'Déconnecté'}
+          </Text> */}
+          <Image 
+            source={require('../../assets/images/image.png')} 
+            style={{ width: 300, height: 300 }} 
+           />
+
           <Text style={styles.info}>
             Température : {temperature !== null ? `${temperature}°C` : 'Chargement...'}
           </Text>
-          
+
           <Text style={styles.info}>
             Humidité : {humidite !== null ? `${humidite}%` : 'Chargement...'}
           </Text>
-          
+
           <Text style={styles.info}>
-            {arrosageActif ? 'Arrosage en cours ' : 'Arrosage arrêté '}
+            {arrosageActif ? 'Arrosage en cours' : 'Arrosage arrêté'}
           </Text>
 
           <TouchableOpacity 
@@ -46,11 +52,16 @@ const ComposteurControl: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          {!connecte && (
+          {/* {!connecte && (
             <TouchableOpacity style={styles.boutonReconnexion} onPress={reconnecter}>
               <Text style={styles.texteBouton}>Reconnecter</Text>
             </TouchableOpacity>
-          )}
+          )} */}
+
+          {/* 🔵 Bouton pour aller voir l'historique */}
+          <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/affichage_historique')}>
+            <Text style={styles.texteBouton}>Voir l'historique</Text>
+          </TouchableOpacity>
         </>
       )}
     </ScrollView>
@@ -101,6 +112,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 8,
     marginTop: 10,
+  },
+  boutonNavigation: {
+    backgroundColor: '#8E44AD',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginTop: 20,
   },
   texteBouton: {
     color: 'white',
