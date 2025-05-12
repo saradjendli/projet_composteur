@@ -1,31 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
+import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const utiliserGestionnaireWebSocket = () => {
   const [arrosageActif, setArrosageActif] = useState(false);
+  const [arrosageBloque, setArrosageBloque] = useState(false);
   const [temperature, setTemperature] = useState(null);
   const [humidite, setHumidite] = useState(null);
   const [connecte, setConnecte] = useState(false);
   const [erreur, setErreur] = useState(null);
+  const [modeAuto, setModeAuto] = useState(false);
 
   const wsRef = useRef(null);
-  const intervalleReconnexionRef = useRef(null);
-  const intervallePingRef = useRef(null);
 
   const initialiserWebSocket = async () => {
-    console.log('Initialisation du WebSocket...');
+    console.log('[WebSocket] Initialisation...');
 
-    // Fermer la connexion existante avant d'en ouvrir une nouvelle
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close();
-      console.log('Fermeture de la connexion WebSocket existante');
+      console.log('[WebSocket] Ancienne connexion fermée.');
     }
 
     const token = await SecureStore.getItemAsync('userToken');
-
     if (!token) {
-      console.error('Aucun token trouvé dans SecureStore');
       setErreur('Non authentifié');
+      console.log('[WebSocket] Aucun token trouvé');
       return;
     }
 
@@ -38,105 +37,118 @@ const utiliserGestionnaireWebSocket = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connecté');
+      console.log('[WebSocket] Connecté');
       setConnecte(true);
       setErreur(null);
-
-      if (!intervallePingRef.current) {
-        intervallePingRef.current = setInterval(() => {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log('Envoi ping au serveur WebSocket');
-            wsRef.current.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, 58000); // ping toutes les 58 secondes
-      }
     };
 
     ws.onmessage = (event) => {
-      try {
-        console.log('Message reçu du serveur WebSocket :', event.data);
-        const donnees = JSON.parse(event.data);
+      console.log('[WebSocket] Message reçu:', event.data);
 
-        // Ne mettre à jour que si la valeur est présente
-        if (donnees.temperature !== undefined && donnees.temperature !== null) {
+      try {
+        const donnees = JSON.parse(event.data);
+        console.log(donnees)
+        if (donnees.temperature !== undefined) {
+          console.log('[WebSocket] Température reçue:', donnees.temperature);
           setTemperature(donnees.temperature);
         }
 
-        if (donnees.humidite !== undefined && donnees.humidite !== null) {
+        if (donnees.humidite !== undefined) {
+          console.log('[WebSocket] Humidité reçue:', donnees.humidite);
           setHumidite(donnees.humidite);
         }
+
+        if (donnees.etat !== undefined) {
+          console.log('[WebSocket] État de la pompe reçu:', donnees.etat);
+
+          if (donnees.etat === "on") {
+            setArrosageActif(true);
+            setArrosageBloque(true);
+
+            console.log('[WebSocket] Pompe activée ailleurs -> Blocage du bouton');
+
+            Alert.alert(
+              "Arrosage déjà en cours",
+              "L'arrosage est déjà actif sur un autre appareil."
+            );
+          } else if (donnees.etat === "off") {
+            setArrosageActif(false);
+            setArrosageBloque(false);
+
+            console.log('[WebSocket] Pompe arrêtée -> Déblocage du bouton');
+          }
+        }
+
       } catch (error) {
-        console.error('Erreur lors du traitement des données WebSocket :', error);
+        console.error('[WebSocket] Erreur JSON:', error);
       }
     };
 
     ws.onclose = () => {
-      console.log('WebSocket fermé, tentative de reconnexion dans 5 secondes');
+      console.log('[WebSocket] Fermé');
       setConnecte(false);
-
-      if (!intervalleReconnexionRef.current) {
-        intervalleReconnexionRef.current = setTimeout(initialiserWebSocket, 5000);
-      }
-
-      if (intervallePingRef.current) {
-        clearInterval(intervallePingRef.current);
-        intervallePingRef.current = null;
-      }
     };
 
     ws.onerror = (error) => {
-      console.error('Erreur WebSocket :', error);
+      console.error('[WebSocket] Erreur:', error);
       setErreur('Erreur de connexion WebSocket');
     };
   };
 
   const envoyerMessage = (message) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      console.log('Envoi du message au serveur WebSocket :', message);
+      console.log('[WebSocket] Envoi du message:', message);
       wsRef.current.send(JSON.stringify(message));
     } else {
-      console.error('Échec de l\'envoi du message, WebSocket non disponible');
+      console.error('[WebSocket] Impossible d\'envoyer, connexion non disponible');
       setErreur('Connexion WebSocket non disponible');
     }
+  };
+
+  const basculerModeArrosageAuto = () => {
+    const nouveauMode = !modeAuto;
+    setModeAuto(nouveauMode);
+
+    console.log('[WebSocket] Changement mode auto ->', nouveauMode ? 'auto' : 'manuel');
+
+    envoyerMessage({
+      mode: nouveauMode ? 'auto' : 'manuel',
+    });
   };
 
   const basculerControleArrosage = () => {
     const nouvelEtat = !arrosageActif;
     setArrosageActif(nouvelEtat);
 
+    console.log('[WebSocket] Changement état arrosage manuel ->', nouvelEtat ? 'on' : 'off');
+
     envoyerMessage({
-      capteur: 'pompe',
       etat: nouvelEtat ? 'on' : 'off',
     });
-  };
-
-  const reconnecter = () => {
-    console.log('Reconnexion manuelle demandée');
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    initialiserWebSocket();
   };
 
   useEffect(() => {
     initialiserWebSocket();
 
     return () => {
-      console.log('Nettoyage du composant, fermeture du WebSocket');
-      if (wsRef.current) wsRef.current.close();
-      if (intervalleReconnexionRef.current) clearTimeout(intervalleReconnexionRef.current);
-      if (intervallePingRef.current) clearInterval(intervallePingRef.current);
+      if (wsRef.current) {
+        wsRef.current.close();
+        console.log('[WebSocket] Nettoyage: Connexion fermée');
+      }
     };
   }, []);
 
   return {
     arrosageActif,
+    arrosageBloque,
     temperature,
     humidite,
     connecte,
     erreur,
+    modeAuto,
     basculerControleArrosage,
-    reconnecter,
+    basculerModeArrosageAuto,
+    envoyerMessage,
   };
 };
 

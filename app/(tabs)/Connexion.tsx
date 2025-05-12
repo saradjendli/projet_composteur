@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useRouter } from 'expo-router'; // <-- ici on utilise useRouter
-import { green } from 'react-native-reanimated/lib/typescript/Colors';
+import { useRouter } from 'expo-router'; // <-- pour passer d'une page à une autre  
+
 
 const Connexion: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -38,7 +38,7 @@ const Connexion: React.FC = () => {
         Alert.alert('Succès', 'Connexion réussie !');
 
         //  Redirection automatique après login réussi
-        router.replace('/Commandes'); // <-- ici tu remplaces l'écran Connexion par Affichage
+        router.replace('/commandes'); // <-- ici tu remplaces l'écran Connexion par Affichage
       } else {
         throw new Error('Réponse inattendue du serveur');
       }
@@ -52,7 +52,7 @@ const Connexion: React.FC = () => {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-      <Text style={{ fontSize: 24, marginBottom: 20 }}>Pour voir les données du compost vous devez saisir le mot secret</Text>
+      <Text style={{ fontSize: 24, marginBottom: 20 }}>Saisir le mot secret</Text>
 
       <TextInput
         placeholder="Mot de passe"

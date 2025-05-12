@@ -17,7 +17,7 @@ const PageInscription = () => {
   const [nomUtilisateur, setNomUtilisateur] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
 
-  const handleInscription = async () => {
+  const traiterInscription = async () => {
     if (!nomUtilisateur || !motDePasse) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
@@ -33,7 +33,7 @@ const PageInscription = () => {
     await SecureStore.setItemAsync('salt', salt);
 
     Alert.alert('Succès', 'Inscription réussie !');
-    router.push('/Accueil');
+    router.push('/accueil');
   };
 
   return (
@@ -56,7 +56,7 @@ const PageInscription = () => {
         onChangeText={setMotDePasse}
       />
 
-      <Button title="S'inscrire" onPress={handleInscription} />
+      <Button title="S'inscrire" onPress={traiterInscription} />
     </View>
   );
 };

@@ -1,16 +1,18 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView , Image} from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import utiliserGestionnaireWebSocket from './WebSocketManager';
 import { useRouter } from 'expo-router';
 
 const ComposteurControl: React.FC = () => {
-  const { 
-    arrosageActif, 
-    temperature, 
-    humidite, 
+  const {
+    arrosageActif,
+    arrosageBloque,
+    temperature,
+    humidite,
     erreur,
-    basculerControleArrosage, 
-    reconnecter 
+    modeAuto,
+    basculerControleArrosage,
+    basculerModeArrosageAuto,
   } = utiliserGestionnaireWebSocket();
 
   const router = useRouter();
@@ -19,18 +21,12 @@ const ComposteurControl: React.FC = () => {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titre}>Données du Compost :</Text>
 
+      <Image source={require('../../assets/images/image.png')} style={{ width: 200, height: 200 }} />
+
       {erreur ? (
         <Text style={styles.erreur}>{erreur}</Text>
       ) : (
         <>
-          {/* <Text style={styles.connectionStatus}>
-            {connecte ? 'Connecté au serveur WebSocket' : 'Déconnecté'}
-          </Text> */}
-          <Image 
-            source={require('../../assets/images/image.png')} 
-            style={{ width: 300, height: 300 }} 
-           />
-
           <Text style={styles.info}>
             Température : {temperature !== null ? `${temperature}°C` : 'Chargement...'}
           </Text>
@@ -39,28 +35,46 @@ const ComposteurControl: React.FC = () => {
             Humidité : {humidite !== null ? `${humidite}%` : 'Chargement...'}
           </Text>
 
-          <Text style={styles.info}>
-            {arrosageActif ? 'Arrosage en cours' : 'Arrosage arrêté'}
-          </Text>
+          {modeAuto && (
+            <Text style={[styles.info, { fontStyle: 'italic', color: '#2E86AB' }]}>
+              Mode automatique activé
+            </Text>
+          )}
 
-          <TouchableOpacity 
-            style={[styles.bouton, arrosageActif ? styles.boutonActif : null]} 
-            onPress={basculerControleArrosage}
+          {!modeAuto && (
+            <TouchableOpacity
+              style={[
+                styles.bouton,
+                arrosageBloque ? styles.boutonGrise : null, // Grisé si bloqué
+                arrosageActif && !arrosageBloque ? styles.boutonActif : null, // Rouge si actif par toi
+              ]}
+              onPress={basculerControleArrosage}
+              disabled={arrosageBloque}
+            >
+              <Text style={styles.texteBouton}>
+                {arrosageBloque
+                  ? "Arrosage en cours ailleurs"
+                  : arrosageActif
+                  ? "Désactiver l'arrosage manuel"
+                  : "Activer l'arrosage manuel"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[styles.bouton, modeAuto ? styles.boutonActif : null]}
+            onPress={basculerModeArrosageAuto}
           >
             <Text style={styles.texteBouton}>
-              {arrosageActif ? "Désactiver l'arrosage" : "Activer l'arrosage"}
+              {modeAuto ? 'Désactiver le mode automatique' : 'Activer le mode automatique'}
             </Text>
           </TouchableOpacity>
 
-          {/* {!connecte && (
-            <TouchableOpacity style={styles.boutonReconnexion} onPress={reconnecter}>
-              <Text style={styles.texteBouton}>Reconnecter</Text>
-            </TouchableOpacity>
-          )} */}
-
-          {/* 🔵 Bouton pour aller voir l'historique */}
-          <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/affichage_historique')}>
-            <Text style={styles.texteBouton}>Voir l'historique</Text>
+          <TouchableOpacity
+            style={styles.boutonNavigation}
+            onPress={() => router.push('/affichage_historique')}
+          >
+            <Text style={styles.texteBouton}>Consulter l'historique</Text>
           </TouchableOpacity>
         </>
       )}
@@ -82,11 +96,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#333',
   },
-  connectionStatus: {
-    fontSize: 16,
-    marginBottom: 15,
-    color: '#666',
-  },
   info: {
     fontSize: 18,
     marginBottom: 10,
@@ -106,12 +115,8 @@ const styles = StyleSheet.create({
   boutonActif: {
     backgroundColor: '#F44336',
   },
-  boutonReconnexion: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    marginTop: 10,
+  boutonGrise: {
+    backgroundColor: '#A9A9A9',
   },
   boutonNavigation: {
     backgroundColor: '#8E44AD',

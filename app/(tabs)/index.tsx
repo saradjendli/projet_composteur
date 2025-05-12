@@ -10,7 +10,7 @@ export default function IndexRedirect() {
     async function verifierConnexion() {
       const isLoggedIn = await SecureStore.getItemAsync('isLoggedIn');
       if (isLoggedIn === 'true') {
-        router.replace('/Connexion'); //  Aller directement à Connexion si connecté
+        router.replace('/connexion'); //  Aller directement à Connexion si connecté
       }
     }
 
@@ -21,7 +21,7 @@ export default function IndexRedirect() {
   useFocusEffect(
     useCallback(() => {
       const timer = setTimeout(() => {
-        router.replace('/Accueil'); // Sinon aller vers Accueil
+        router.replace('/accueil'); // Sinon aller vers Accueil
       }, 100);
 
       return () => clearTimeout(timer);

@@ -59,9 +59,9 @@ const HistoriqueCompost = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* 🟣 Bouton pour retourner vers ComposteurControl */}
-      <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/Commandes')}>
-        <Text style={styles.texteBouton}>Retour au contrôle temps réel</Text>
+      {/* Bouton violet pour retourner vers la page affichage */}
+      <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/commandes')}>
+        <Text style={styles.texteBouton}>Retour au contrôle des données</Text>
       </TouchableOpacity>
 
       <Text style={styles.titre}>Historique du Compost :</Text>
