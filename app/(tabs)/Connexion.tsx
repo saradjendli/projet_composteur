@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useRouter } from 'expo-router'; // <-- pour passer d'une page à une autre  
+import { useRouter } from 'expo-router';  
 
 
 const Connexion: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter(); // ← ici on appelle useRouter()
+  const router = useRouter(); 
 
   const handleLogin = async () => {
     setLoading(true);
@@ -37,8 +37,7 @@ const Connexion: React.FC = () => {
         await SecureStore.setItemAsync('userToken', data.token);
         Alert.alert('Succès', 'Connexion réussie !');
 
-        //  Redirection automatique après login réussi
-        router.replace('/commandes'); // <-- ici tu remplaces l'écran Connexion par Affichage
+        router.replace('/Commandes'); 
       } else {
         throw new Error('Réponse inattendue du serveur');
       }

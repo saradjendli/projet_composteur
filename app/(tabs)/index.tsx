@@ -1,27 +1,16 @@
 import React, { useCallback, useEffect } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { View, Text } from 'react-native';
-import * as SecureStore from 'expo-secure-store'; // Import SecureStore
+
 
 export default function IndexRedirect() {
   const router = useRouter();
 
-  useEffect(() => {
-    async function verifierConnexion() {
-      const isLoggedIn = await SecureStore.getItemAsync('isLoggedIn');
-      if (isLoggedIn === 'true') {
-        router.replace('/connexion'); //  Aller directement à Connexion si connecté
-      }
-    }
-
-    verifierConnexion();
-  }, []);
-
-  // Redirection si pas encore connecté
+  // Redirection vers l'accueil
   useFocusEffect(
     useCallback(() => {
       const timer = setTimeout(() => {
-        router.replace('/accueil'); // Sinon aller vers Accueil
+        router.replace('/(tabs)/accueil'); 
       }, 100);
 
       return () => clearTimeout(timer);
@@ -34,3 +23,4 @@ export default function IndexRedirect() {
     </View>
   );
 }
+

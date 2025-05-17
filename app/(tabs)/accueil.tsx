@@ -22,7 +22,7 @@ const EcranAccueil = () => {
     const storedPassword = await SecureStore.getItemAsync('motDePasse');
 
     if (!storedSalt || !storedUser || !storedPassword) {
-      Alert.alert('Erreur', "Veuillez d'abord vous inscrire.");
+      // Alert.alert('Erreur', "Veuillez d'abord vous inscrire.");
       router.push('/inscription');
       return;
     }
@@ -31,18 +31,19 @@ const EcranAccueil = () => {
     const hashedMotDePasse = await hacher(motDePasse, storedSalt);
 
     if (hashedUtilisateur === storedUser && hashedMotDePasse === storedPassword) {
-      // await SecureStore.setItemAsync('isLoggedIn', 'true'); //  Pour marquer l'utilisateur comme connecté
+      await SecureStore.setItemAsync('isLoggedIn', 'true'); //  Pour marquer l'utilisateur comme connecté
       Alert.alert('Bienvenue', nomUtilisateur);
-      router.replace('/connexion'); //  Remplacer pour éviter retour arrière
+      router.replace('/Connexion'); //  Vers la deuxième page d'authentification
     } else {
       Alert.alert('Erreur', 'Identifiants incorrects.');
     }
     
   };
+  
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titre}>Newton-compost</Text>
+      <Text style={styles.titre}>Newton-Compost</Text>
       <Image 
         source={require('../../assets/images/user.png')} 
         style={{ width: 200, height: 200 }} 
@@ -68,29 +69,6 @@ const EcranAccueil = () => {
     </View>
   );
 };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     paddingHorizontal: 20,
-//   },
-//   titre: {
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//     color: '#4CAF50',
-//     marginBottom: 20,
-//   },
-//   input: {
-//     height: 40,
-//     borderColor: '#ccc',
-//     borderWidth: 1,
-//     marginBottom: 10,
-//     paddingLeft: 8,
-//     borderRadius: 5,
-//     width: '100%',
-//   },
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import * as SecureStore from 'expo-secure-store';
@@ -28,7 +28,7 @@ const HistoriqueCompost = () => {
         }
 
         const response = await fetch(`https://api.composteur.cielnewton.fr/${periode}`, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -40,7 +40,10 @@ const HistoriqueCompost = () => {
         }
 
         const data = await response.json();
-        setDonnees(data);
+        const dataFiltered = data.filter(
+          (d: DonneeCapteur) => d.temperature < 100 && d.humidite <= 100
+        );
+        setDonnees(dataFiltered);
       } catch (error) {
         console.error('Erreur API:', error);
       }
@@ -51,16 +54,20 @@ const HistoriqueCompost = () => {
     }
   }, [periode]);
 
-  const donneesTransformees = donnees.map((item) => ({
-    date: new Date(item._time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    temperature: item.temperature,
-    humidite: item.humidite,
-  }));
+  const donneesTransformees = donnees.sort((a, b) => new Date(a._time).getTime() - new Date(b._time).getTime())
+    .map((item) => ({
+      date: new Date(item._time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      temperature: item.temperature,
+      humidite: item.humidite,
+    }));
+
+  const labels = donneesTransformees.map((d, i) =>
+    i % Math.ceil(donneesTransformees.length / 5) === 0 ? d.date : ''
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Bouton violet pour retourner vers la page affichage */}
-      <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/commandes')}>
+      <TouchableOpacity style={styles.boutonNavigation} onPress={() => router.push('/Commandes')}>
         <Text style={styles.texteBouton}>Retour au contrôle des données</Text>
       </TouchableOpacity>
 
@@ -79,7 +86,7 @@ const HistoriqueCompost = () => {
       {donnees.length > 0 ? (
         <LineChart
           data={{
-            labels: donneesTransformees.map(d => d.date),
+            labels,
             datasets: [
               {
                 data: donneesTransformees.map(d => d.temperature),
@@ -93,7 +100,7 @@ const HistoriqueCompost = () => {
             legend: ['Température (°C)', 'Humidité (%)'],
           }}
           width={screenWidth - 20}
-          height={250}
+          height={300}
           chartConfig={{
             backgroundColor: '#ffffff',
             backgroundGradientFrom: '#ffffff',
@@ -101,9 +108,6 @@ const HistoriqueCompost = () => {
             decimalPlaces: 1,
             color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
             propsForDots: {
               r: '3',
               strokeWidth: '1',
