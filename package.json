@@ -11,12 +11,15 @@
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
-"jest": {
-  "preset": "jest-expo",
-  "setupFilesAfterEnv": ["@testing-library/jest-native/extend-expect"]
-},
+  "jest": {
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-native/extend-expect"
+    ]
+  },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-picker/picker": "^2.9.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
