@@ -38,8 +38,9 @@ const HistoriqueCompost = () => {
         if (!response.ok) {
           throw new Error(`Erreur API : ${response.status}`);
         }
-
+        
         const data = await response.json();
+        console.log(data);
         const dataFiltered = data.filter(
           (d: DonneeCapteur) => d.temperature < 100 && d.humidite <= 100
         );
@@ -54,15 +55,32 @@ const HistoriqueCompost = () => {
     }
   }, [periode]);
 
-  const donneesTransformees = donnees.sort((a, b) => new Date(a._time).getTime() - new Date(b._time).getTime())
+    const formaterDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr);
+
+    switch (periode) {
+      case 'month':
+        return date.toLocaleDateString('fr-FR', { month: 'long' }); // met le mois
+      case 'week':
+        return date.toLocaleDateString('fr-FR', { weekday: 'short' }); // met les jours
+      case 'day':
+      default:
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // met les heures
+    }
+  };
+
+  const donneesTransformees = donnees
+    .sort((a, b) => new Date(a._time).getTime() - new Date(b._time).getTime())
     .map((item) => ({
-      date: new Date(item._time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: item._time,
       temperature: item.temperature,
       humidite: item.humidite,
     }));
 
   const labels = donneesTransformees.map((d, i) =>
-    i % Math.ceil(donneesTransformees.length / 5) === 0 ? d.date : ''
+    i % Math.ceil(donneesTransformees.length / 5) === 0
+      ? formaterDateLabel(d.date)
+      : ''
   );
 
   return (

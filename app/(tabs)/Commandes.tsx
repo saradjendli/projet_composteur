@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {Text,TouchableOpacity,StyleSheet,ScrollView,Image,Modal,View,Alert,} from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, ScrollView, Image, Modal, View, Alert } from 'react-native';
 import utiliserGestionnaireWebSocket from './WebSocketManager';
 import { useRouter } from 'expo-router';
 
@@ -13,65 +13,43 @@ const ComposteurControl: React.FC = () => {
     erreur,
     envoyerMessage,
     stopArrosage,
-  } = utiliserGestionnaireWebSocket(); 
+    jeControleLaPompe,
+    setOnArrosageTermine,
+  } = utiliserGestionnaireWebSocket();
 
   const router = useRouter();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
 
   const [boutonsDesactives, setBoutonsDesactives] = useState<boolean>(false);
   const [tempsRestant, setTempsRestant] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
 
+  const [alerteVisible, setAlerteVisible] = useState(false);
+  const [messageAlerte, setMessageAlerte] = useState('');
 
+  const lancerDecompte = () => {
+    let count = 15;
+    setTempsRestant(count);
+    setModalVisible(true);
+    setBoutonsDesactives(true);
 
+    const countdown = () => {
+      if (count > 0) {
+        setTimeout(() => {
+          count -= 1;
+          setTempsRestant(count);
+          countdown();
+        }, 1000);
+      } else {
+        setModalVisible(false);
+        setTempsRestant(null);
+        setBoutonsDesactives(false);
+        stopArrosage();
+      }
+    };
 
-  // const lancerDecompte = () => {
-  //   let count = 15;
-  //   setTempsRestant(count);
-  //   setModalVisible(true);
-  //   setBoutonsDesactives(true);
-
-  //   const interval = setInterval(() => {
-  //     count -= 1;
-  //     setTempsRestant(count);
-  //     if (count <= 0) {
-  //       clearInterval(interval);
-  //       setModalVisible(false);
-  //       setTempsRestant(null);
-  //       // stopArrosage();
-  //     }
-  //      setBoutonsDesactives(false);
-  //   }, 1000);
-
-  //   intervalRef.current = interval;
-  // };
-
-const lancerDecompte = () => {
-  let count = 15;
-  setTempsRestant(count);
-  setModalVisible(true);
-  setBoutonsDesactives(true);
-
-  const countdown = () => {
-    if (count > 0) {
-      setTimeout(() => {
-        count -= 1;
-        setTempsRestant(count);
-        countdown();
-      }, 1000);
-    } else {
-      setModalVisible(false);
-      setTempsRestant(null);
-      setBoutonsDesactives(false);
-      stopArrosage();
-    }
+    countdown();
   };
-
-  countdown();
-};
-
-
 
   useEffect(() => {
     return () => {
@@ -89,12 +67,22 @@ const lancerDecompte = () => {
   }, [erreur, modalVisible]);
 
   useEffect(() => {
-  if (arrosageActif && !modalVisible && !boutonsDesactives) {
-    console.log('[DEBUG] Reprise du décompte depuis historique');
-    lancerDecompte();
-  }
-}, [arrosageActif]);
+    setOnArrosageTermine(() => {
+      setBoutonsDesactives(false);
+    });
+  }, []);
 
+  useEffect(() => {
+    if (
+      arrosageActif &&
+      !modalVisible &&
+      !boutonsDesactives &&
+      jeControleLaPompe
+    ) {
+      // console.log('[DEBUG] Lancement du décompte car c’est moi qui ai déclenché');
+      lancerDecompte();
+    }
+  }, [arrosageActif]);
 
   const handleArrosageManuel = () => {
     if (boutonsDesactives || modeAuto || arrosageActif || arrosageBloque) return;
@@ -105,6 +93,34 @@ const lancerDecompte = () => {
   const handleModeAuto = () => {
     if (boutonsDesactives || arrosageActif || arrosageBloque) return;
     envoyerMessage({ mode: modeAuto ? 'manuel' : 'auto' });
+  };
+
+  const verifierCompost = () => {
+    if (temperature === null || humidite === null) {
+      Alert.alert("Erreur", "Les données ne sont pas disponibles pour l’instant.");
+      return;
+    }
+
+    let message = '';
+
+    if (temperature < 30) {
+      message += 'Température trop basse. Ajoutez de la matière verte.\n';
+    } else if (temperature > 70) {
+      message += 'Température trop élevée. Retournez le compost.\n';
+    }
+
+    if (humidite < 40) {
+      message += 'Humidité trop basse. Ajoutez de l’eau.\n';
+    } else if (humidite > 70) {
+      message += 'Humidité trop élevée. Ajoutez de la matière sèche.\n';
+    }
+
+    if (message) {
+      setMessageAlerte(message);
+      setAlerteVisible(true);
+    } else {
+      Alert.alert('Compost OK', 'Les conditions sont optimales.');
+    }
   };
 
   return (
@@ -163,6 +179,13 @@ const lancerDecompte = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
+           style={[styles.bouton, styles.boutonVert]}
+          onPress={verifierCompost}
+        >
+          <Text style={styles.texteBouton}>Vérification du compost</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.boutonNavigation}
           onPress={() => router.push('/affichage_historique')}
         >
@@ -182,6 +205,26 @@ const lancerDecompte = () => {
             <Text style={styles.modalTimer}>
               La pompe s’arrêtera dans {tempsRestant}s
             </Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={alerteVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAlerteVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Alerte compost</Text>
+            <Text style={styles.modalTimer}>{messageAlerte}</Text>
+            <TouchableOpacity
+              onPress={() => setAlerteVisible(false)}
+              style={[styles.bouton, { marginTop: 20 }]}
+            >
+              <Text style={styles.texteBouton}>Fermer</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -221,6 +264,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
+
+boutonVert: {
+  backgroundColor: 'green',
+},
+
+
+
+
   boutonActif: {
     backgroundColor: '#F44336',
   },
@@ -260,36 +311,23 @@ const styles = StyleSheet.create({
   modalTimer: {
     fontSize: 18,
     color: '#2E86AB',
+    textAlign: 'center',
   },
 });
 
 export default ComposteurControl;
 
-//_________________________________________________________________________________________________
+
+
+
+
+
+
 
 // import React, { useEffect, useState, useRef } from 'react';
 // import {Text,TouchableOpacity,StyleSheet,ScrollView,Image,Modal,View,Alert,} from 'react-native';
 // import utiliserGestionnaireWebSocket from './WebSocketManager';
 // import { useRouter } from 'expo-router';
-
-// interface HistoriqueItem {
-//   date: number;
-//   actif: boolean;
-// }
-
-// interface WebSocketData {
-//   arrosageActif: boolean;
-//   arrosageBloque: boolean;
-//   temperature: number | null;
-//   humidite: number | null;
-//   connecte: boolean;
-//   erreur: string | null;
-//   modeAuto: boolean;
-//   envoyerMessage: (msg: { etat?: 'on' | 'off'; mode?: 'auto' | 'manuel' }) => void;
-//   stopArrosage: () => void;
-//   historique: HistoriqueItem[];
-// }
-
 
 // const ComposteurControl: React.FC = () => {
 //   const {
@@ -301,42 +339,51 @@ export default ComposteurControl;
 //     erreur,
 //     envoyerMessage,
 //     stopArrosage,
-//     historique,
-//   } = utiliserGestionnaireWebSocket();
+//     jeControleLaPompe,
+//     setOnArrosageTermine, 
 
-//   const router = useRouter();
+//   } = utiliserGestionnaireWebSocket(); 
+
+//   const router = useRouter();  // appelles le hook useRouter(), et que tu récupères dans la variable router
+//   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+
 //   const [boutonsDesactives, setBoutonsDesactives] = useState<boolean>(false);
 //   const [tempsRestant, setTempsRestant] = useState<number | null>(null);
 //   const [modalVisible, setModalVisible] = useState<boolean>(false);
 
-//   const dernierEtat: HistoriqueItem | undefined = historique[historique.length - 1];
-//   const pompeActiveSelonHistorique: boolean = dernierEtat ? dernierEtat.actif : false;
-//   const boutonsDesactivesSelonHistorique: boolean =
-//     boutonsDesactives || modeAuto || arrosageBloque || pompeActiveSelonHistorique;
 
-//   const lancerDecompte = (): void => {
-//     let count: number = 15;
-//     setTempsRestant(count);
-//     setModalVisible(true);
-//     setBoutonsDesactives(true);
+// const lancerDecompte = () => {
+//   let count = 15;
+//   setTempsRestant(count);
+//   setModalVisible(true);
+//   setBoutonsDesactives(true);
 
-//     const countdown = (): void => {
-//       if (count > 0) {
-//         setTimeout(() => {
-//           count -= 1;
-//           setTempsRestant(count);
-//           countdown();
-//         }, 1000);
-//       } else {
-//         setModalVisible(false);
-//         setTempsRestant(null);
-//         setBoutonsDesactives(false);
-//         stopArrosage();
-//       }
-//     };
-
-//     countdown();
+//   const countdown = () => {
+//     if (count > 0) {
+//       setTimeout(() => {
+//         count -= 1;
+//         setTempsRestant(count);
+//         countdown();
+//       }, 1000);
+//     } else {
+//       setModalVisible(false);
+//       setTempsRestant(null);
+//       setBoutonsDesactives(false);
+//       stopArrosage();
+//     }
 //   };
+
+//   countdown();
+// };
+
+
+
+//   useEffect(() => {
+//     return () => {
+//       if (intervalRef.current !== null) clearInterval(intervalRef.current);
+//     };
+//   }, []);
 
 //   useEffect(() => {
 //     if (erreur === 'ARROSAGE_AUTRE_APPAREIL' && !modalVisible) {
@@ -346,15 +393,35 @@ export default ComposteurControl;
 //       );
 //     }
 //   }, [erreur, modalVisible]);
+  
+//   useEffect(() => {
+//   setOnArrosageTermine(() => {
+//     setBoutonsDesactives(false); //  Réactive les boutons
+//   });
+// }, []);
 
-//   const handleArrosageManuel = (): void => {
-//     if (boutonsDesactivesSelonHistorique) return;
+
+//   useEffect(() => {
+//   if (
+//     arrosageActif &&
+//     !modalVisible &&
+//     !boutonsDesactives &&
+//     jeControleLaPompe 
+//   ) {
+//     console.log('[DEBUG] Lancement du décompte car c’est moi qui ai déclenché');
+//     lancerDecompte();
+//   }
+// }, [arrosageActif]);
+
+
+//   const handleArrosageManuel = () => {
+//     if (boutonsDesactives || modeAuto || arrosageActif || arrosageBloque) return;
 //     envoyerMessage({ etat: 'on' });
 //     lancerDecompte();
 //   };
 
-//   const handleModeAuto = (): void => {
-//     if (boutonsDesactivesSelonHistorique) return;
+//   const handleModeAuto = () => {
+//     if (boutonsDesactives || arrosageActif || arrosageBloque) return;
 //     envoyerMessage({ mode: modeAuto ? 'manuel' : 'auto' });
 //   };
 
@@ -376,7 +443,7 @@ export default ComposteurControl;
 //           Humidité : {humidite !== null ? `${humidite}%` : 'Chargement...'}
 //         </Text>
 
-//         {pompeActiveSelonHistorique && (
+//         {arrosageActif && (
 //           <Text style={styles.messagePompe}>
 //             Pompe en marche... Attendez la fin de l’arrosage.
 //           </Text>
@@ -391,10 +458,10 @@ export default ComposteurControl;
 //         <TouchableOpacity
 //           style={[
 //             styles.bouton,
-//             boutonsDesactivesSelonHistorique ? styles.boutonGrise : null,
+//             (boutonsDesactives || modeAuto || arrosageActif || arrosageBloque) ? styles.boutonGrise : null,
 //           ]}
 //           onPress={handleArrosageManuel}
-//           disabled={boutonsDesactivesSelonHistorique}
+//           disabled={boutonsDesactives || modeAuto || arrosageActif || arrosageBloque}
 //         >
 //           <Text style={styles.texteBouton}>Activer l’arrosage manuel</Text>
 //         </TouchableOpacity>
@@ -403,10 +470,10 @@ export default ComposteurControl;
 //           style={[
 //             styles.bouton,
 //             modeAuto ? styles.boutonActif : null,
-//             boutonsDesactivesSelonHistorique ? styles.boutonGrise : null,
+//             (boutonsDesactives || arrosageActif || arrosageBloque) ? styles.boutonGrise : null,
 //           ]}
 //           onPress={handleModeAuto}
-//           disabled={boutonsDesactivesSelonHistorique}
+//           disabled={boutonsDesactives || arrosageActif || arrosageBloque}
 //         >
 //           <Text style={styles.texteBouton}>
 //             {modeAuto ? 'Désactiver le mode automatique' : 'Activer le mode automatique'}
@@ -419,15 +486,6 @@ export default ComposteurControl;
 //         >
 //           <Text style={styles.texteBouton}>Consulter l'historique</Text>
 //         </TouchableOpacity>
-
-//         {historique.length > 0 && (
-//           <View style={{ marginTop: 20 }}>
-//             <Text style={{ fontWeight: 'bold' }}>Dernier état connu :</Text>
-//             <Text>
-//               {pompeActiveSelonHistorique ? 'Pompe activée' : 'Pompe arrêtée'}
-//             </Text>
-//           </View>
-//         )}
 //       </ScrollView>
 
 //       <Modal

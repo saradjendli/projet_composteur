@@ -22,7 +22,6 @@ const EcranAccueil = () => {
     const storedPassword = await SecureStore.getItemAsync('motDePasse');
 
     if (!storedSalt || !storedUser || !storedPassword) {
-      // Alert.alert('Erreur', "Veuillez d'abord vous inscrire.");
       router.push('/inscription');
       return;
     }

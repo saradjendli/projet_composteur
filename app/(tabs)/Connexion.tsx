@@ -3,7 +3,6 @@ import { View, Text, TextInput, Button, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';  
 
-
 const Connexion: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,9 +24,11 @@ const Connexion: React.FC = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Mot de passe incorrect');
+          Alert.alert('Erreur', 'Identifiants incorrects ou problème serveur.');
+          return;
         } else {
-          throw new Error('Erreur serveur');
+          Alert.alert('Erreur', 'Erreur serveur.');
+          return;
         }
       }
 
@@ -36,17 +37,16 @@ const Connexion: React.FC = () => {
       if (data.token) {
         await SecureStore.setItemAsync('userToken', data.token);
         Alert.alert('Succès', 'Connexion réussie !');
-
         router.replace('/Commandes'); 
       } else {
-        throw new Error('Réponse inattendue du serveur');
+        Alert.alert('Erreur', 'Réponse inattendue du serveur.');
       }
     } catch (err: any) {
       console.error('Erreur de connexion :', err);
-      setError(err.message || 'Erreur inconnue');
+      Alert.alert('Erreur', 'Une erreur est survenue.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -68,7 +68,11 @@ const Connexion: React.FC = () => {
         }}
       />
 
-      <Button title={loading ? "Connexion..." : "Se connecter"} onPress={handleLogin} disabled={loading} />
+      <Button
+        title={loading ? "Connexion..." : "Se connecter"}
+        onPress={handleLogin}
+        disabled={loading}
+      />
 
       {error ? (
         <Text style={{ color: 'red', marginTop: 20 }}>{error}</Text>
